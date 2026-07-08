@@ -24,8 +24,10 @@ pub struct AppConfig {
     /// never issues its own.
     pub jwt_secret: String,
     pub server_port: u16,
-    pub api_base_url: String,
     pub cors_allowed_origins: Vec<String>,
+    /// Resolved by `eco configure` when auth is composed into the same
+    /// estate (see resolve_peer_base_urls in eco/configure.sh).
+    pub auth_base_url: String,
 }
 
 impl AppConfig {
@@ -69,14 +71,14 @@ impl AppConfig {
                 .unwrap_or_else(|_| "mongodb://localhost:27017/profile_dev".to_string()),
             jwt_secret,
             server_port,
-            api_base_url: env::var("API_BASE_URL")
-                .unwrap_or_else(|_| format!("http://localhost:{server_port}/api")),
             cors_allowed_origins: env::var("CORS_ALLOWED_ORIGINS")
                 .unwrap_or_else(|_| "http://localhost:3000".to_string())
                 .split(',')
                 .map(|s| s.trim().to_string())
                 .filter(|s| !s.is_empty())
                 .collect(),
+            auth_base_url: env::var("AUTH_BASE_URL")
+                .unwrap_or_else(|_| "http://localhost:9001/api".to_string()),
         })
     }
 }

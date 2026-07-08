@@ -1,6 +1,11 @@
 use std::{sync::Arc, time::Duration};
 
-use axum::{http::HeaderValue, response::Response, routing::get, Router};
+use axum::{
+    http::HeaderValue,
+    response::Response,
+    routing::{get, post, put},
+    Router,
+};
 use tower::ServiceBuilder;
 use tower_governor::{governor::GovernorConfigBuilder, key_extractor::SmartIpKeyExtractor, GovernorLayer};
 use tower_http::{
@@ -59,6 +64,65 @@ pub fn build_router(state: AppState) -> Router {
 
     let api_routes = Router::new()
         .route("/health", get(handlers::health::health))
+        .route("/users", get(handlers::users::get_all_users))
+        .route("/users/search", get(handlers::users::search_users))
+        .route(
+            "/users/username/:username",
+            get(handlers::users::get_user_by_username),
+        )
+        .route(
+            "/users/platform/:platform_id",
+            get(handlers::users::get_users_by_platform),
+        )
+        .route(
+            "/users/:user_id",
+            get(handlers::users::get_user_by_id).put(handlers::users::update_user),
+        )
+        .route(
+            "/users/:user_id/experience",
+            post(handlers::users::add_experience),
+        )
+        .route(
+            "/users/:user_id/experience/:experience_id",
+            put(handlers::users::update_experience).delete(handlers::users::delete_experience),
+        )
+        .route(
+            "/users/:user_id/education",
+            post(handlers::users::add_education),
+        )
+        .route(
+            "/users/:user_id/education/:education_id",
+            put(handlers::users::update_education).delete(handlers::users::delete_education),
+        )
+        .route("/users/:user_id/skills", post(handlers::users::add_skill))
+        .route(
+            "/users/:user_id/skills/:skill",
+            axum::routing::delete(handlers::users::remove_skill),
+        )
+        .route(
+            "/users/:user_id/certifications",
+            post(handlers::users::add_certification),
+        )
+        .route(
+            "/users/:user_id/certifications/:certification_id",
+            put(handlers::users::update_certification).delete(handlers::users::delete_certification),
+        )
+        .route(
+            "/users/:user_id/social-links",
+            put(handlers::users::update_social_links),
+        )
+        .route(
+            "/schools",
+            get(handlers::tags::get_schools).post(handlers::tags::add_school),
+        )
+        .route(
+            "/interests",
+            get(handlers::tags::get_interests).post(handlers::tags::add_interest),
+        )
+        .route(
+            "/skills",
+            get(handlers::tags::get_skills).post(handlers::tags::add_skill_tag),
+        )
         .layer(GovernorLayer {
             config: general_governor_config,
         })

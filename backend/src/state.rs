@@ -1,7 +1,7 @@
 use mongodb::Database;
 use std::sync::Arc;
 
-use crate::config::AppConfig;
+use crate::{auth_client::AuthClient, config::AppConfig};
 
 #[derive(Clone)]
 pub struct AppState(pub Arc<AppStateInner>);
@@ -9,11 +9,13 @@ pub struct AppState(pub Arc<AppStateInner>);
 pub struct AppStateInner {
     pub db: Database,
     pub config: AppConfig,
+    pub auth_client: AuthClient,
 }
 
 impl AppState {
     pub fn new(db: Database, config: AppConfig) -> Self {
-        AppState(Arc::new(AppStateInner { db, config }))
+        let auth_client = AuthClient::new(config.auth_base_url.clone());
+        AppState(Arc::new(AppStateInner { db, config, auth_client }))
     }
 }
 

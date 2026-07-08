@@ -1,8 +1,13 @@
+mod auth_client;
 mod auth_extractor;
 mod config;
+mod date_parse;
+mod dto;
 mod error;
 mod handlers;
 mod jwt;
+mod models;
+mod repo;
 mod routes;
 mod state;
 
