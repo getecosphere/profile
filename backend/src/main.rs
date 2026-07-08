@@ -1,18 +1,4 @@
-mod auth_client;
-mod auth_extractor;
-mod config;
-mod date_parse;
-mod dto;
-mod error;
-mod handlers;
-mod jwt;
-mod models;
-mod repo;
-mod routes;
-mod state;
-
-use config::AppConfig;
-use state::AppState;
+use profile_service::{config::AppConfig, routes, state::AppState};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
