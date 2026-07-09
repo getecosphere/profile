@@ -11,5 +11,6 @@ pub mod handlers;
 pub mod jwt;
 pub mod models;
 pub mod repo;
+pub mod request_id;
 pub mod routes;
 pub mod state;

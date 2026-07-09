@@ -45,7 +45,11 @@ impl AuthClient {
     }
 
     async fn fetch(&self, url: &str) -> Option<Identity> {
-        match self.http.get(url).send().await {
+        let mut request = self.http.get(url);
+        if let Some(request_id) = crate::request_id::current() {
+            request = request.header(crate::request_id::HEADER_NAME, request_id);
+        }
+        match request.send().await {
             Ok(response) if response.status().is_success() => response.json::<Identity>().await.ok(),
             Ok(response) if response.status() == reqwest::StatusCode::NOT_FOUND => None,
             Ok(response) => {
