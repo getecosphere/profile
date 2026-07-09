@@ -87,6 +87,23 @@ Experience/education/certification dates accept either `YYYY-MM-DD` or
 not rejected as a validation error, matching the original's lenient
 behavior.
 
+## Observability (added 2026-07-09)
+
+Logs are structured JSON (`tracing_subscriber::fmt().json()`), not the
+default human-readable text — prep for centralized log aggregation
+(Grafana Loki is the leading candidate, self-hosted alongside the rest of
+the estate rather than a SaaS product, in keeping with `eco`'s host-native
+philosophy).
+
+Every request gets a correlation id (`src/request_id.rs`): reused from an
+incoming `x-request-id` header if present, otherwise a fresh UUID,
+recorded on the request's tracing span (so every JSON log line during
+that request carries it) and echoed back on the response. `auth_client.rs`'s
+`fetch()` now forwards this same header on every outbound call to auth
+(both hydration and freshness-refresh), so a single profile request and
+the auth call it triggers share one `request_id` and are reconstructable
+as one trail once logs are aggregated somewhere queryable.
+
 ## Verified
 
 Built, ran against a live `auth` instance and local MongoDB: lazy hydration
