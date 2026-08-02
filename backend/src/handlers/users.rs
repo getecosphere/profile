@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     Json,
 };
 use uuid::Uuid;
@@ -43,15 +43,29 @@ pub async fn get_user_by_id(
 
 pub async fn update_user(
     State(state): State<AppState>,
+    headers: HeaderMap,
     auth: AuthUser,
     Path(user_id): Path<String>,
     Json(req): Json<UpdateUserRequest>,
 ) -> AppResult<Json<UserDto>> {
     auth.require_role(PROFILE_ROLES)?;
+    if auth.user_id != user_id {
+        return Err(crate::error::AppError::Forbidden(
+            "You may only edit your own profile".to_string(),
+        ));
+    }
     let mut user = repo::users::require_entity_by_id(&state, &user_id).await?;
 
     if let Some(name) = req.name {
-        user.name = name;
+        let bearer = headers
+            .get(axum::http::header::AUTHORIZATION)
+            .and_then(|value| value.to_str().ok())
+            .ok_or_else(|| crate::error::AppError::Forbidden("Missing bearer token".to_string()))?;
+        user.name = state
+            .auth_client
+            .update_name(bearer, name.trim())
+            .await?
+            .name;
     }
     if req.headline.is_some() {
         user.headline = req.headline;
