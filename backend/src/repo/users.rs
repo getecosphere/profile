@@ -29,7 +29,10 @@ pub async fn sync_from_auth(state: &AppState, user_id: &str) -> Result<User, App
     upsert_from_identity(state, user_id, identity).await
 }
 
-pub async fn sync_from_auth_by_username(state: &AppState, username: &str) -> Result<User, AppError> {
+pub async fn sync_from_auth_by_username(
+    state: &AppState,
+    username: &str,
+) -> Result<User, AppError> {
     let identity = state
         .auth_client
         .fetch_by_username(username)
@@ -48,7 +51,9 @@ async fn upsert_from_identity(
         .map_err(|_| AppError::Internal(anyhow::anyhow!("auth returned a non-ObjectId user id")))?;
     let now = bson::DateTime::now();
 
-    let existing = collection(state).find_one(doc! { "_id": oid }, None).await?;
+    let existing = collection(state)
+        .find_one(doc! { "_id": oid }, None)
+        .await?;
     let user = match existing {
         Some(mut user) => {
             user.username = identity.username;
@@ -58,7 +63,9 @@ async fn upsert_from_identity(
             user.avatar_url = identity.avatar_url;
             user.cover_photo_url = identity.cover_photo_url;
             user.updated_at = now;
-            collection(state).replace_one(doc! { "_id": oid }, &user, None).await?;
+            collection(state)
+                .replace_one(doc! { "_id": oid }, &user, None)
+                .await?;
             user
         }
         None => {
@@ -111,11 +118,16 @@ pub async fn save(state: &AppState, user: &User) -> Result<(), AppError> {
     let oid = user
         .id
         .ok_or_else(|| AppError::Internal(anyhow::anyhow!("user has no id")))?;
-    collection(state).replace_one(doc! { "_id": oid }, user, None).await?;
+    collection(state)
+        .replace_one(doc! { "_id": oid }, user, None)
+        .await?;
     Ok(())
 }
 
-pub async fn find_by_platform_id(state: &AppState, platform_id: &str) -> Result<Vec<User>, AppError> {
+pub async fn find_by_platform_id(
+    state: &AppState,
+    platform_id: &str,
+) -> Result<Vec<User>, AppError> {
     let mut cursor = collection(state)
         .find(doc! { "platformId": platform_id, "deletedAt": null }, None)
         .await?;
@@ -151,7 +163,9 @@ pub async fn search_by_name_in_platform(
 }
 
 pub async fn find_all(state: &AppState) -> Result<Vec<User>, AppError> {
-    let mut cursor = collection(state).find(doc! { "deletedAt": null }, None).await?;
+    let mut cursor = collection(state)
+        .find(doc! { "deletedAt": null }, None)
+        .await?;
     let mut out = Vec::new();
     use futures_util::StreamExt;
     while let Some(user) = cursor.next().await {

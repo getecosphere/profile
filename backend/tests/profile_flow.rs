@@ -27,7 +27,13 @@ async fn mock_identity(auth: &MockServer, user_id: &str, name: &str, avatar_url:
 #[tokio::test]
 async fn lazy_hydrates_a_user_never_seen_before() {
     let auth = MockServer::start().await;
-    mock_identity(&auth, "c9f95b04ca88de84b41374c5", "Alice", "https://cdn.example.com/alice-v1.png").await;
+    mock_identity(
+        &auth,
+        "c9f95b04ca88de84b41374c5",
+        "Alice",
+        "https://cdn.example.com/alice-v1.png",
+    )
+    .await;
     let app = common::spawn(&auth.uri()).await;
 
     let res = app
@@ -69,7 +75,13 @@ async fn unknown_user_is_not_hydrated() {
 #[tokio::test]
 async fn every_read_refreshes_identity_from_auth() {
     let auth = MockServer::start().await;
-    mock_identity(&auth, "0c1f56722f454f263fba645d", "Bob", "https://cdn.example.com/bob-v1.png").await;
+    mock_identity(
+        &auth,
+        "0c1f56722f454f263fba645d",
+        "Bob",
+        "https://cdn.example.com/bob-v1.png",
+    )
+    .await;
     let app = common::spawn(&auth.uri()).await;
 
     let first: Value = app
@@ -85,7 +97,13 @@ async fn every_read_refreshes_identity_from_auth() {
 
     // auth's identity changes (new avatar uploaded there).
     auth.reset().await;
-    mock_identity(&auth, "0c1f56722f454f263fba645d", "Bob", "https://cdn.example.com/bob-v2.png").await;
+    mock_identity(
+        &auth,
+        "0c1f56722f454f263fba645d",
+        "Bob",
+        "https://cdn.example.com/bob-v2.png",
+    )
+    .await;
 
     let second: Value = app
         .http
@@ -96,17 +114,30 @@ async fn every_read_refreshes_identity_from_auth() {
         .json()
         .await
         .unwrap();
-    assert_eq!(second["avatarUrl"], "https://cdn.example.com/bob-v2.png", "profile should reflect the latest auth identity, not a stale cache");
+    assert_eq!(
+        second["avatarUrl"], "https://cdn.example.com/bob-v2.png",
+        "profile should reflect the latest auth identity, not a stale cache"
+    );
 }
 
 #[tokio::test]
 async fn updating_a_profile_requires_authentication() {
     let auth = MockServer::start().await;
-    mock_identity(&auth, "783ca098cbc4bda85af30e11", "Carol", "https://cdn.example.com/carol.png").await;
+    mock_identity(
+        &auth,
+        "783ca098cbc4bda85af30e11",
+        "Carol",
+        "https://cdn.example.com/carol.png",
+    )
+    .await;
     let app = common::spawn(&auth.uri()).await;
 
     // Hydrate first via a GET so the row exists.
-    app.http.get(app.url("/users/783ca098cbc4bda85af30e11")).send().await.unwrap();
+    app.http
+        .get(app.url("/users/783ca098cbc4bda85af30e11"))
+        .send()
+        .await
+        .unwrap();
 
     let unauthenticated = app
         .http
@@ -117,7 +148,11 @@ async fn updating_a_profile_requires_authentication() {
         .expect("update user request");
     assert_eq!(unauthenticated.status(), 401);
 
-    let token = common::mint_token("783ca098cbc4bda85af30e11", "user-783ca098cbc4bda85af30e11", "MEMBER");
+    let token = common::mint_token(
+        "783ca098cbc4bda85af30e11",
+        "user-783ca098cbc4bda85af30e11",
+        "MEMBER",
+    );
     let authenticated = app
         .http
         .put(app.url("/users/783ca098cbc4bda85af30e11"))
@@ -136,10 +171,24 @@ async fn updating_a_profile_requires_authentication() {
 #[tokio::test]
 async fn experience_can_be_added_with_lenient_date_formats() {
     let auth = MockServer::start().await;
-    mock_identity(&auth, "898c918d3eb05a43760dbd2b", "Dave", "https://cdn.example.com/dave.png").await;
+    mock_identity(
+        &auth,
+        "898c918d3eb05a43760dbd2b",
+        "Dave",
+        "https://cdn.example.com/dave.png",
+    )
+    .await;
     let app = common::spawn(&auth.uri()).await;
-    app.http.get(app.url("/users/898c918d3eb05a43760dbd2b")).send().await.unwrap();
-    let token = common::mint_token("898c918d3eb05a43760dbd2b", "user-898c918d3eb05a43760dbd2b", "MEMBER");
+    app.http
+        .get(app.url("/users/898c918d3eb05a43760dbd2b"))
+        .send()
+        .await
+        .unwrap();
+    let token = common::mint_token(
+        "898c918d3eb05a43760dbd2b",
+        "user-898c918d3eb05a43760dbd2b",
+        "MEMBER",
+    );
 
     let res = app
         .http

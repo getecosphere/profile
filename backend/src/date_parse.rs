@@ -32,8 +32,7 @@ pub fn parse_date(input: &Option<String>) -> Option<bson::DateTime> {
 
 fn to_bson(date: NaiveDate) -> Option<bson::DateTime> {
     let datetime = date.and_hms_opt(0, 0, 0)?;
-    Some(bson::DateTime::from_chrono(chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(
-        datetime,
-        chrono::Utc,
-    )))
+    Some(bson::DateTime::from_chrono(
+        chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(datetime, chrono::Utc),
+    ))
 }

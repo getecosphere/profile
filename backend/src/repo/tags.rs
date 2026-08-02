@@ -15,7 +15,10 @@ struct Tag {
     updated_at: bson::DateTime,
 }
 
-pub async fn get_all_sorted(state: &AppState, collection_name: &str) -> Result<Vec<String>, AppError> {
+pub async fn get_all_sorted(
+    state: &AppState,
+    collection_name: &str,
+) -> Result<Vec<String>, AppError> {
     let collection: mongodb::Collection<Document> = state.db.collection(collection_name);
     let mut cursor = collection.find(doc! {}, None).await?;
     let mut names = Vec::new();
@@ -29,9 +32,17 @@ pub async fn get_all_sorted(state: &AppState, collection_name: &str) -> Result<V
     Ok(names)
 }
 
-pub async fn add_if_missing(state: &AppState, collection_name: &str, name: &str) -> Result<(), AppError> {
+pub async fn add_if_missing(
+    state: &AppState,
+    collection_name: &str,
+    name: &str,
+) -> Result<(), AppError> {
     let collection: mongodb::Collection<Tag> = state.db.collection(collection_name);
-    if collection.find_one(doc! { "name": name }, None).await?.is_some() {
+    if collection
+        .find_one(doc! { "name": name }, None)
+        .await?
+        .is_some()
+    {
         return Ok(());
     }
     let now = bson::DateTime::now();

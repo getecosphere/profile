@@ -31,8 +31,12 @@ impl AuthClient {
     }
 
     pub async fn fetch_by_id(&self, user_id: &str) -> Option<Identity> {
-        self.fetch(&format!("{}/auth/users/{}", self.base_url.trim_end_matches('/'), user_id))
-            .await
+        self.fetch(&format!(
+            "{}/auth/users/{}",
+            self.base_url.trim_end_matches('/'),
+            user_id
+        ))
+        .await
     }
 
     pub async fn fetch_by_username(&self, username: &str) -> Option<Identity> {
@@ -50,7 +54,9 @@ impl AuthClient {
             request = request.header(crate::request_id::HEADER_NAME, request_id);
         }
         match request.send().await {
-            Ok(response) if response.status().is_success() => response.json::<Identity>().await.ok(),
+            Ok(response) if response.status().is_success() => {
+                response.json::<Identity>().await.ok()
+            }
             Ok(response) if response.status() == reqwest::StatusCode::NOT_FOUND => None,
             Ok(response) => {
                 tracing::warn!(url, status = %response.status(), "unexpected response from auth service");

@@ -14,7 +14,11 @@ pub struct Claims {
 
 pub fn validate_token(secret: &str, token: &str) -> Option<Claims> {
     let validation = Validation::new(Algorithm::HS512);
-    decode::<Claims>(token, &DecodingKey::from_secret(secret.as_bytes()), &validation)
-        .ok()
-        .map(|data| data.claims)
+    decode::<Claims>(
+        token,
+        &DecodingKey::from_secret(secret.as_bytes()),
+        &validation,
+    )
+    .ok()
+    .map(|data| data.claims)
 }

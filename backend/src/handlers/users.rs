@@ -115,7 +115,9 @@ pub async fn add_experience(
         end_date: parse_date(&req.end_date),
         currently_working: Some(req.currently_working.unwrap_or(false)),
     };
-    user.experiences.get_or_insert_with(Vec::new).push(experience);
+    user.experiences
+        .get_or_insert_with(Vec::new)
+        .push(experience);
     user.updated_at = bson::DateTime::now();
 
     repo::users::save(&state, &user).await?;
@@ -311,7 +313,9 @@ pub async fn add_certification(
         expiration_date: parse_date(&req.expiration_date),
         credential_url: req.credential_url,
     };
-    user.certifications.get_or_insert_with(Vec::new).push(certification);
+    user.certifications
+        .get_or_insert_with(Vec::new)
+        .push(certification);
     user.updated_at = bson::DateTime::now();
 
     repo::users::save(&state, &user).await?;
