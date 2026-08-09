@@ -68,10 +68,8 @@ pub fn build_router(state: AppState) -> Router {
             "/users/platform/:platform_id",
             get(handlers::users::get_users_by_platform),
         )
-        .route(
-            "/users/:user_id",
-            get(handlers::users::get_user_by_id).put(handlers::users::update_user),
-        )
+        // Sub-routes must be registered BEFORE the catch-all :user_id
+        // so axum's trie correctly resolves them after a Router merge.
         .route(
             "/users/:user_id/experience",
             post(handlers::users::add_experience),
@@ -105,6 +103,12 @@ pub fn build_router(state: AppState) -> Router {
         .route(
             "/users/:user_id/social-links",
             put(handlers::users::update_social_links),
+        )
+        // Catch-all :user_id LAST — registered after all sub-routes so
+        // the merge-safe trie gives sub-routes priority over the wildcard.
+        .route(
+            "/users/:user_id",
+            get(handlers::users::get_user_by_id).put(handlers::users::update_user),
         )
         .route(
             "/schools",
