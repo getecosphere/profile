@@ -1,0 +1,49 @@
+name: profile
+domain: profile
+version: 1.0.0
+publisher: stuff8
+status: unverified
+license: mit
+summary: "User profiles: bio, experience, education, skills, certifications, links"
+
+targets:
+  - linux/amd64
+
+artifacts: {}
+
+contract:
+  version: 1
+  api: "profile REST API (read/write profile + social links)"
+  env:
+    required:
+      - MONGODB_URI
+      - JWT_SECRET
+      - SERVER_PORT
+      - API_BASE_URL
+    optional:
+      - CORS_ALLOWED_ORIGINS
+      - AUTH_BASE_URL
+      - RATE_LIMIT_GENERAL_BURST
+      - RATE_LIMIT_GENERAL_REPLENISH_SECS
+  db: mongodb@7
+  network:
+    inbound: [http]
+    outbound: [http]
+  resources:
+    memory: "128m"
+    disk: "256m"
+    startup_seconds: 5
+
+runtime:
+  base: self-contained-static
+  libc: musl
+  dependencies: []
+
+provenance:
+  source: ""
+  commit: ""
+  built_by: ""
+  built_at: ""
+  target: x86_64-unknown-linux-musl
+
+release: []
