@@ -1,10 +1,10 @@
 name: profile
 domain: profile
-version: 1.0.0
+version: 1.1.0
 publisher: stuff8
 status: unverified
 license: mit
-summary: "User profiles: bio, experience, education, skills, certifications, links"
+summary: "User profiles: bio, experience, education, skills, certifications, links, avatars"
 
 targets:
   - linux/amd64
@@ -13,7 +13,7 @@ artifacts: {}
 
 contract:
   version: 1
-  api: "profile REST API (read/write profile + social links)"
+  api: "profile REST API (read/write profile + social links + avatar upload)"
   env:
     required:
       - MONGODB_URI
@@ -23,6 +23,7 @@ contract:
     optional:
       - CORS_ALLOWED_ORIGINS
       - AUTH_BASE_URL
+      - STORAGE_BASE_URL
       - RATE_LIMIT_GENERAL_BURST
       - RATE_LIMIT_GENERAL_REPLENISH_SECS
   db: mongodb@7

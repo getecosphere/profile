@@ -3,7 +3,9 @@ use serde::Deserialize;
 use crate::error::{AppError, AppResult};
 
 /// Mirrors auth's UserDto shape exactly (see rwid/auth's src/dto/mod.rs).
-/// auth is the only writer of these fields; profile only ever reads them.
+/// Auth is the only writer of these identity fields; profile only ever reads
+/// them. Avatar/cover URLs are profile-owned now (uploaded via the storage
+/// LXS), so they are deliberately absent here.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Identity {
@@ -11,10 +13,6 @@ pub struct Identity {
     pub name: String,
     pub username: String,
     pub email: String,
-    #[serde(default)]
-    pub avatar_url: Option<String>,
-    #[serde(default)]
-    pub cover_photo_url: Option<String>,
     pub role: String,
 }
 

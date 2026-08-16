@@ -60,8 +60,8 @@ async fn upsert_from_identity(
             user.email = identity.email;
             user.name = identity.name;
             user.role = identity.role;
-            user.avatar_url = identity.avatar_url;
-            user.cover_photo_url = identity.cover_photo_url;
+            // avatar/cover are profile-owned now (written via the storage
+            // LXS), so identity sync preserves whatever profile has.
             user.updated_at = now;
             collection(state)
                 .replace_one(doc! { "_id": oid }, &user, None)
@@ -75,8 +75,8 @@ async fn upsert_from_identity(
                 email: identity.email,
                 name: identity.name,
                 headline: None,
-                avatar_url: identity.avatar_url,
-                cover_photo_url: identity.cover_photo_url,
+                avatar_url: None,
+                cover_photo_url: None,
                 bio: None,
                 location: None,
                 website: None,
@@ -172,4 +172,32 @@ pub async fn find_all(state: &AppState) -> Result<Vec<User>, AppError> {
         out.push(user?);
     }
     Ok(out)
+}
+
+/// Set the avatar URL on the local profile row (profile is the writer).
+pub async fn update_avatar_url(state: &AppState, id: &str, url: &str) -> Result<(), AppError> {
+    let oid = ObjectId::parse_str(id)
+        .map_err(|_| AppError::BadRequest(format!("Invalid user id: {id}")))?;
+    collection(state)
+        .update_one(
+            doc! { "_id": oid },
+            doc! { "$set": { "avatarUrl": url, "updatedAt": bson::DateTime::now() } },
+            None,
+        )
+        .await?;
+    Ok(())
+}
+
+/// Set the cover-photo URL on the local profile row (profile is the writer).
+pub async fn update_cover_photo_url(state: &AppState, id: &str, url: &str) -> Result<(), AppError> {
+    let oid = ObjectId::parse_str(id)
+        .map_err(|_| AppError::BadRequest(format!("Invalid user id: {id}")))?;
+    collection(state)
+        .update_one(
+            doc! { "_id": oid },
+            doc! { "$set": { "coverPhotoUrl": url, "updatedAt": bson::DateTime::now() } },
+            None,
+        )
+        .await?;
+    Ok(())
 }

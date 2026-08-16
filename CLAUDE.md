@@ -15,40 +15,27 @@ Java, already wired to this exact split) plus `SchoolController`/
 
 ## What this domain does and doesn't own
 
-auth owns credentials, JWT, and identity (`username`/`email`/`name`/`role`/
-`avatarUrl`/`coverPhotoUrl`). profile owns everything else about a person:
-bio, headline, location, website, `whatsappNumber`, `province`, `school`,
+auth owns credentials, JWT, and identity (`username`/`email`/`name`/`role`).
+profile owns everything else about a person, **including `avatarUrl`/
+`coverPhotoUrl`** (uploaded via the storage LXS, written by profile): bio,
+headline, location, website, `whatsappNumber`, `province`, `school`,
 `platformId`, `interests`, `experiences`, `education`, `skills`,
 `certifications`, `socialLinks`.
 
-profile's local `User` document is **not authoritative** for the
-auth-owned fields — it's a cache, refreshed live via `AuthClient` on every
-`GET /users/{id}` and `GET /users/username/{username}` (see below). Never
-write `username`/`email`/`name`/`role`/`avatarUrl`/`coverPhotoUrl` to a
-local row directly; they only ever come from auth.
+profile's local `User` document is **not authoritative** for the auth-owned
+fields (`username`/`email`/`name`/`role`) — those are refreshed live via
+`AuthClient` on every `GET /users/{id}` and `GET /users/username/{username}`.
+`avatarUrl`/`coverPhotoUrl` are **profile-owned**: written here (proxy upload
+to the storage LXS), never overwritten by the auth identity sync.
 
 ## Dependencies
 
-`auth` — the only peer call this service makes. `AuthClient`
-(`src/auth_client.rs`) hits `GET /auth/users/{id}` and
-`GET /auth/users/username/{username}` for two purposes:
-
-1. **Lazy hydration**: the first time this service is asked about a user it
-   has no local row for (`require_entity_by_id` in `repo/users.rs`), it
-   fetches identity from auth and creates the row rather than 404ing —
-   important because a user can register through auth and never have
-   touched profile yet.
-2. **Freshness on read**: every `GET /users/{id}` / `GET /users/username/{x}`
-   calls `sync_from_auth` unconditionally first, so avatar/cover/role
-   changes made through auth show up immediately. Profile-*editing*
-   operations (add experience, update bio, etc.) only hydrate a missing row
-   — they don't force a refresh on every write, since those don't need
-   avatar freshness and a network round-trip on every edit would be wasteful.
-
-If `auth` is unreachable, both hydration and freshness-refresh fail closed
-(`AuthClient::fetch` returns `None` on any error, which surfaces as 404) —
-there's no stale-cache fallback. Acceptable for now; revisit if auth
-downtime needs to degrade more gracefully than "profile reads 404 too."
+`auth` — `AuthClient` (`src/auth_client.rs`) hits `GET /auth/users/{id}` and
+`GET /auth/users/username/{username}` for lazy hydration and identity
+freshness on read. `storage` — `StorageClient` (`src/storage_client.rs`)
+proxies avatar/cover uploads (`POST /storage/objects`) and deletes to the
+storage LXS; profile stores only the resulting content URL. Both are resolved
+via `AUTH_BASE_URL` / `STORAGE_BASE_URL` (set by `eco configure`).
 
 ## API
 
@@ -66,18 +53,13 @@ Base path `/api`.
 - `POST /users/{id}/skills`, `DELETE /users/{id}/skills/{skill}` — same
   role gate
 - `PUT /users/{id}/social-links` — same role gate
+- `POST /users/{id}/avatar`, `POST /users/{id}/upload-cover-photo` — same
+  role gate; multipart `file` proxied to the storage LXS, content URL stored
+  on the profile row
 - `GET/POST /schools`, `/interests`, `/skills` (top-level, the taxonomy
   lists) — public, one generic implementation
   (`repo::tags::get_all_sorted`/`add_if_missing`) backing all three
   collections instead of three copies of the same code
-
-## Not carried over
-
-`avatarUrl`/`coverPhotoUrl` are **read-only** here (composed from auth on
-every fetch). This service has no upload endpoint and no file storage —
-uploading an avatar/cover is exclusively `POST /users/{id}/avatar` and
-`POST /users/{id}/upload-cover-photo` on `auth`. If you're looking for that
-code, it's not missing from this port, it was never meant to be here.
 
 ## Date parsing
 

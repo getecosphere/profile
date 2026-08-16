@@ -104,6 +104,14 @@ pub fn build_router(state: AppState) -> Router {
             "/users/:user_id/social-links",
             put(handlers::users::update_social_links),
         )
+        .route(
+            "/users/:user_id/avatar",
+            post(handlers::users::upload_avatar),
+        )
+        .route(
+            "/users/:user_id/upload-cover-photo",
+            post(handlers::users::upload_cover_photo),
+        )
         // Catch-all :user_id LAST — registered after all sub-routes so
         // the merge-safe trie gives sub-routes priority over the wildcard.
         .route(

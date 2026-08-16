@@ -24,6 +24,7 @@ pub enum AppError {
     BadRequest(String),
     Forbidden(String),
     Conflict(String),
+    ServiceUnavailable(String),
     Internal(anyhow::Error),
 }
 
@@ -35,6 +36,7 @@ impl AppError {
             AppError::BadRequest(_) => (StatusCode::BAD_REQUEST, "INVALID_ARGUMENT"),
             AppError::Forbidden(_) => (StatusCode::FORBIDDEN, "ACCESS_DENIED"),
             AppError::Conflict(_) => (StatusCode::CONFLICT, "ALREADY_EXISTS"),
+            AppError::ServiceUnavailable(_) => (StatusCode::SERVICE_UNAVAILABLE, "SERVICE_UNAVAILABLE"),
             AppError::Internal(_) => (StatusCode::INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR"),
         }
     }
@@ -50,6 +52,7 @@ impl IntoResponse for AppError {
             AppError::BadRequest(msg) => (msg, None),
             AppError::Forbidden(msg) => (msg, None),
             AppError::Conflict(msg) => (msg, None),
+            AppError::ServiceUnavailable(msg) => (msg, None),
             AppError::Internal(err) => {
                 tracing::error!("Unexpected error occurred: {err:?}");
                 ("An unexpected error occurred".to_string(), None)

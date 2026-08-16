@@ -14,6 +14,7 @@ pub mod repo;
 pub mod request_id;
 pub mod routes;
 pub mod state;
+pub mod storage_client;
 
 pub async fn bootstrap() -> anyhow::Result<axum::Router> {
     let _ = dotenvy::dotenv();

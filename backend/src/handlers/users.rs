@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Multipart, Path, Query, State},
     http::{HeaderMap, StatusCode},
     Json,
 };
@@ -414,4 +414,81 @@ pub async fn update_social_links(
 
     repo::users::save(&state, &user).await?;
     Ok(Json(UserDto::from(&user)))
+}
+
+/// Upload an avatar for a user: proxy the bytes to the storage LXS, then
+/// record the resulting content URL on the profile row (profile is the
+/// writer of avatar/cover — auth no longer owns these).
+pub async fn upload_avatar(
+    State(state): State<AppState>,
+    auth: AuthUser,
+    Path(user_id): Path<String>,
+    multipart: Multipart,
+) -> AppResult<(StatusCode, Json<serde_json::Value>)> {
+    auth.require_role(PROFILE_ROLES)?;
+    repo::users::find_by_id_local(&state, &user_id)
+        .await?
+        .ok_or_else(|| crate::error::AppError::NotFound(format!("User not found: {user_id}")))?;
+
+    let (file_name, content_type, bytes) = read_single_file(multipart).await?;
+    let stored = state
+        .storage_client
+        .upload(&user_id, "avatars", &user_id, file_name.as_deref(), content_type.as_deref(), bytes)
+        .await?;
+    repo::users::update_avatar_url(&state, &user_id, &stored.content_url).await?;
+
+    Ok((
+        StatusCode::CREATED,
+        Json(serde_json::json!({ "avatarUrl": stored.content_url })),
+    ))
+}
+
+/// Upload a cover photo: proxy to the storage LXS, then record the URL on
+/// the profile row.
+pub async fn upload_cover_photo(
+    State(state): State<AppState>,
+    auth: AuthUser,
+    Path(user_id): Path<String>,
+    multipart: Multipart,
+) -> AppResult<(StatusCode, Json<serde_json::Value>)> {
+    auth.require_role(PROFILE_ROLES)?;
+    repo::users::find_by_id_local(&state, &user_id)
+        .await?
+        .ok_or_else(|| crate::error::AppError::NotFound(format!("User not found: {user_id}")))?;
+
+    let (file_name, content_type, bytes) = read_single_file(multipart).await?;
+    let stored = state
+        .storage_client
+        .upload(&user_id, "cover-photos", &user_id, file_name.as_deref(), content_type.as_deref(), bytes)
+        .await?;
+    repo::users::update_cover_photo_url(&state, &user_id, &stored.content_url).await?;
+
+    Ok((
+        StatusCode::CREATED,
+        Json(serde_json::json!({ "coverPhotoUrl": stored.content_url })),
+    ))
+}
+
+/// Read the single `file` part out of a multipart body.
+async fn read_single_file(
+    mut multipart: Multipart,
+) -> AppResult<(Option<String>, Option<String>, Vec<u8>)> {
+    while let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|e| crate::error::AppError::BadRequest(format!("Invalid multipart body: {e}")))?
+    {
+        if field.name() == Some("file") {
+            let file_name = field.file_name().map(|s| s.to_string());
+            let content_type = field.content_type().map(|s| s.to_string());
+            let bytes = field
+                .bytes()
+                .await
+                .map_err(|e| crate::error::AppError::BadRequest(format!("Failed to read upload: {e}")))?;
+            return Ok((file_name, content_type, bytes.to_vec()));
+        }
+    }
+    Err(crate::error::AppError::BadRequest(
+        "Missing 'file' field".to_string(),
+    ))
 }
