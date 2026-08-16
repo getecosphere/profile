@@ -32,6 +32,11 @@ pub struct AppConfig {
     /// Resolved by `eco configure` via STORAGE_BASE_URL. Empty → avatar
     /// upload endpoints return 503 until the estate composes storage.
     pub storage_base_url: String,
+    /// Public origin under which storage content is reachable by browsers
+    /// (e.g. https://proof-rust.getecosphere.com). Content URLs stored on the
+    /// profile use this so `<img>`/header avatars work outside the CT.
+    /// Defaults to STORAGE_BASE_URL's origin when not set.
+    pub storage_public_url: String,
     /// Everyday rate limit shared across all routes, per source IP. Tunable
     /// via env instead of a recompile -- dev traffic (page-load fan-out
     /// across peer services, hot reload) legitimately needs a larger burst
@@ -90,6 +95,8 @@ impl AppConfig {
             auth_base_url: env::var("AUTH_BASE_URL")
                 .unwrap_or_else(|_| "http://localhost:9001/api".to_string()),
             storage_base_url: env::var("STORAGE_BASE_URL")
+                .unwrap_or_else(|_| String::new()),
+            storage_public_url: env::var("STORAGE_PUBLIC_URL")
                 .unwrap_or_else(|_| String::new()),
             rate_limit_general_burst: env::var("RATE_LIMIT_GENERAL_BURST")
                 .ok()

@@ -16,13 +16,17 @@ pub struct StoredUpload {
 pub struct StorageClient {
     http: reqwest::Client,
     base_url: String,
+    /// Public origin for content URLs (browser-reachable). When empty, falls
+    /// back to the internal base_url (still fine for same-CT reads).
+    public_url: String,
 }
 
 impl StorageClient {
-    pub fn new(base_url: String) -> Self {
+    pub fn new(base_url: String, public_url: String) -> Self {
         Self {
             http: reqwest::Client::new(),
             base_url,
+            public_url,
         }
     }
 
@@ -35,7 +39,14 @@ impl StorageClient {
     }
 
     fn content_url_for(&self, key: &str) -> String {
-        format!("{}/storage/content/{}", self.base_url.trim_end_matches('/'), key)
+        let base = if !self.public_url.is_empty() {
+            self.public_url.trim_end_matches('/')
+        } else {
+            self.base_url.trim_end_matches('/')
+        };
+        // base is <origin>/api/storage (or <internal>/api); content is
+        // <base>/content/<key>.
+        format!("{base}/content/{}", key)
     }
 
     /// Upload a file to the storage LXS under namespace/reference_id, return

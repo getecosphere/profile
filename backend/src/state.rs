@@ -16,7 +16,7 @@ pub struct AppStateInner {
 impl AppState {
     pub fn new(db: Database, config: AppConfig) -> Self {
         let auth_client = AuthClient::new(config.auth_base_url.clone());
-        let storage_client = StorageClient::new(config.storage_base_url.clone());
+        let storage_client = StorageClient::new(config.storage_base_url.clone(), config.storage_public_url.clone());
         AppState(Arc::new(AppStateInner {
             db,
             config,
