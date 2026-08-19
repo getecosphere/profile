@@ -1,0 +1,609 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "profile",
+    "version": "1.0.2",
+    "description": "User profile domain. All write endpoints require a Bearer HS512 JWT issued by auth (roles OWNER/MENTOR/MEMBER). Read endpoints and taxonomy endpoints are public. Errors use {code,message,details?,timestamp}."
+  },
+  "servers": [
+    { "url": "http://localhost:8080/api" }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "health",
+        "summary": "Liveness probe",
+        "responses": {
+          "200": {
+            "description": "UP",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object", "properties": { "status": { "type": "string", "enum": ["UP"] } } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "operationId": "getAllUsers",
+        "summary": "List all non-soft-deleted users (local store, no auth refresh)",
+        "responses": {
+          "200": {
+            "description": "Users",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/UserDto" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/search": {
+      "get": {
+        "operationId": "searchUsers",
+        "summary": "Case-insensitive name search scoped to a platform",
+        "parameters": [
+          { "name": "platformId", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "query", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching users",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/UserDto" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/username/{username}": {
+      "get": {
+        "operationId": "getUserByUsername",
+        "summary": "Fetch by username; refreshes identity from auth and hydrates if unknown",
+        "parameters": [
+          { "name": "username", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "User", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserDto" } } } },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/Internal" }
+        }
+      }
+    },
+    "/users/platform/{platformId}": {
+      "get": {
+        "operationId": "getUsersByPlatform",
+        "summary": "List non-soft-deleted users for a platform",
+        "parameters": [
+          { "name": "platformId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Users",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/UserDto" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{userId}": {
+      "get": {
+        "operationId": "getUserById",
+        "summary": "Fetch by id; refreshes identity from auth and hydrates if unknown",
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "User", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserDto" } } } },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/Internal" }
+        }
+      },
+      "put": {
+        "operationId": "updateUser",
+        "summary": "Update own profile (roles OWNER/MENTOR/MEMBER, self only)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UpdateUserRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Updated user", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserDto" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/Internal" }
+        }
+      }
+    },
+    "/users/{userId}/experience": {
+      "post": {
+        "operationId": "addExperience",
+        "summary": "Add an experience entry (role-gated)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ExperienceRequest" } } }
+        },
+        "responses": {
+          "201": { "description": "User with new experience", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserDto" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "500": { "$ref": "#/components/responses/Internal" }
+        }
+      }
+    },
+    "/users/{userId}/experience/{experienceId}": {
+      "put": {
+        "operationId": "updateExperience",
+        "summary": "Update an experience entry",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "experienceId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ExperienceRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Updated user", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserDto" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "500": { "$ref": "#/components/responses/Internal" }
+        }
+      },
+      "delete": {
+        "operationId": "deleteExperience",
+        "summary": "Remove an experience entry",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "experienceId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Updated user", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserDto" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "500": { "$ref": "#/components/responses/Internal" }
+        }
+      }
+    },
+    "/users/{userId}/education": {
+      "post": {
+        "operationId": "addEducation",
+        "summary": "Add an education entry (role-gated)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EducationRequest" } } }
+        },
+        "responses": {
+          "201": { "description": "User with new education", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserDto" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "500": { "$ref": "#/components/responses/Internal" }
+        }
+      }
+    },
+    "/users/{userId}/education/{educationId}": {
+      "put": {
+        "operationId": "updateEducation",
+        "summary": "Update an education entry",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "educationId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EducationRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Updated user", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserDto" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "500": { "$ref": "#/components/responses/Internal" }
+        }
+      },
+      "delete": {
+        "operationId": "deleteEducation",
+        "summary": "Remove an education entry",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "educationId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Updated user", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserDto" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "500": { "$ref": "#/components/responses/Internal" }
+        }
+      }
+    },
+    "/users/{userId}/skills": {
+      "post": {
+        "operationId": "addSkill",
+        "summary": "Add a skill (idempotent; role-gated)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "skill", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "201": { "description": "User with new skill", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserDto" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "500": { "$ref": "#/components/responses/Internal" }
+        }
+      }
+    },
+    "/users/{userId}/skills/{skill}": {
+      "delete": {
+        "operationId": "removeSkill",
+        "summary": "Remove a skill (exact match, no-op if absent)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "skill", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Updated user", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserDto" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "500": { "$ref": "#/components/responses/Internal" }
+        }
+      }
+    },
+    "/users/{userId}/certifications": {
+      "post": {
+        "operationId": "addCertification",
+        "summary": "Add a certification (role-gated)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CertificationRequest" } } }
+        },
+        "responses": {
+          "201": { "description": "User with new certification", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserDto" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "500": { "$ref": "#/components/responses/Internal" }
+        }
+      }
+    },
+    "/users/{userId}/certifications/{certificationId}": {
+      "put": {
+        "operationId": "updateCertification",
+        "summary": "Update a certification",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "certificationId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CertificationRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Updated user", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserDto" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "500": { "$ref": "#/components/responses/Internal" }
+        }
+      },
+      "delete": {
+        "operationId": "deleteCertification",
+        "summary": "Remove a certification",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "certificationId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Updated user", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserDto" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "500": { "$ref": "#/components/responses/Internal" }
+        }
+      }
+    },
+    "/users/{userId}/social-links": {
+      "put": {
+        "operationId": "updateSocialLinks",
+        "summary": "Merge social links (present fields overwrite)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SocialLinksRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Updated user", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserDto" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "500": { "$ref": "#/components/responses/Internal" }
+        }
+      }
+    },
+    "/schools": {
+      "get": {
+        "operationId": "getSchools",
+        "summary": "List school taxonomy, sorted",
+        "responses": {
+          "200": { "description": "School names", "content": { "application/json": { "schema": { "type": "array", "items": { "type": "string" } } } } }
+        }
+      },
+      "post": {
+        "operationId": "addSchool",
+        "summary": "Add a school if missing (idempotent)",
+        "parameters": [
+          { "name": "name", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "201": { "description": "Plain-text name" },
+          "400": { "$ref": "#/components/responses/Validation" }
+        }
+      }
+    },
+    "/interests": {
+      "get": {
+        "operationId": "getInterests",
+        "summary": "List interest taxonomy, sorted",
+        "responses": {
+          "200": { "description": "Interest names", "content": { "application/json": { "schema": { "type": "array", "items": { "type": "string" } } } } }
+        }
+      },
+      "post": {
+        "operationId": "addInterest",
+        "summary": "Add an interest if missing (idempotent)",
+        "parameters": [
+          { "name": "name", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "201": { "description": "Plain-text name" },
+          "400": { "$ref": "#/components/responses/Validation" }
+        }
+      }
+    },
+    "/skills": {
+      "get": {
+        "operationId": "getSkills",
+        "summary": "List skill taxonomy, sorted",
+        "responses": {
+          "200": { "description": "Skill names", "content": { "application/json": { "schema": { "type": "array", "items": { "type": "string" } } } } }
+        }
+      },
+      "post": {
+        "operationId": "addSkillTag",
+        "summary": "Add a skill to the taxonomy if missing (idempotent)",
+        "parameters": [
+          { "name": "name", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "201": { "description": "Plain-text name" },
+          "400": { "$ref": "#/components/responses/Validation" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "HS512 JWT (issued by auth)"
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "Missing/invalid/expired bearer token",
+        "content": {
+          "application/json": {
+            "schema": { "type": "object", "properties": { "error": { "type": "string" }, "message": { "type": "string" } } }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Role not permitted, or editing another user's profile",
+        "content": {
+          "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } }
+        }
+      },
+      "NotFound": {
+        "description": "User unknown to auth (or auth unreachable — fail closed)",
+        "content": {
+          "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } }
+        }
+      },
+      "BadRequest": {
+        "description": "Invalid argument",
+        "content": {
+          "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } }
+        }
+      },
+      "Validation": {
+        "description": "Blank required field",
+        "content": {
+          "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } }
+        }
+      },
+      "Internal": {
+        "description": "Unexpected error",
+        "content": {
+          "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } }
+        }
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string" },
+          "message": { "type": "string" },
+          "details": { "type": "object", "additionalProperties": { "type": "string" } },
+          "timestamp": { "type": "string", "format": "date-time" }
+        },
+        "required": ["message", "timestamp"]
+      },
+      "UserDto": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "username": { "type": "string" },
+          "email": { "type": "string" },
+          "headline": { "type": "string" },
+          "avatarUrl": { "type": "string", "nullable": true },
+          "coverPhotoUrl": { "type": "string", "nullable": true },
+          "bio": { "type": "string" },
+          "location": { "type": "string" },
+          "website": { "type": "string" },
+          "school": { "type": "string" },
+          "whatsappNumber": { "type": "string" },
+          "province": { "type": "string" },
+          "codLocation": { "type": "string" },
+          "role": { "type": "string" },
+          "platformId": { "type": "string" },
+          "interests": { "type": "array", "items": { "type": "string" } },
+          "experiences": { "type": "array", "items": { "$ref": "#/components/schemas/Experience" } },
+          "education": { "type": "array", "items": { "$ref": "#/components/schemas/Education" } },
+          "skills": { "type": "array", "items": { "type": "string" } },
+          "certifications": { "type": "array", "items": { "$ref": "#/components/schemas/Certification" } },
+          "socialLinks": { "$ref": "#/components/schemas/SocialLinks" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["id", "name", "username", "email", "role", "createdAt", "updatedAt"]
+      },
+      "Experience": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "company": { "type": "string" },
+          "location": { "type": "string" },
+          "description": { "type": "string" },
+          "startDate": { "type": "string", "format": "date-time" },
+          "endDate": { "type": "string", "format": "date-time" },
+          "currentlyWorking": { "type": "boolean" }
+        },
+        "required": ["id"]
+      },
+      "Education": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "school": { "type": "string" },
+          "degree": { "type": "string" },
+          "fieldOfStudy": { "type": "string" },
+          "startDate": { "type": "string", "format": "date-time" },
+          "endDate": { "type": "string", "format": "date-time" },
+          "description": { "type": "string" }
+        },
+        "required": ["id"]
+      },
+      "Certification": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "issuer": { "type": "string" },
+          "issueDate": { "type": "string", "format": "date-time" },
+          "expirationDate": { "type": "string", "format": "date-time" },
+          "credentialUrl": { "type": "string" }
+        },
+        "required": ["id"]
+      },
+      "SocialLinks": {
+        "type": "object",
+        "properties": {
+          "linkedin": { "type": "string" },
+          "twitter": { "type": "string" },
+          "github": { "type": "string" },
+          "portfolio": { "type": "string" }
+        }
+      },
+      "UpdateUserRequest": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "description": "Forwarded to auth (PUT /auth/me)" },
+          "headline": { "type": "string" },
+          "bio": { "type": "string" },
+          "location": { "type": "string" },
+          "website": { "type": "string" },
+          "interests": { "type": "array", "items": { "type": "string" } },
+          "whatsappNumber": { "type": "string" },
+          "province": { "type": "string" },
+          "codLocation": { "type": "string" }
+        }
+      },
+      "ExperienceRequest": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "company": { "type": "string" },
+          "location": { "type": "string" },
+          "description": { "type": "string" },
+          "startDate": { "type": "string", "description": "YYYY-MM-DD or DD/MM/YYYY" },
+          "endDate": { "type": "string", "description": "YYYY-MM-DD or DD/MM/YYYY" },
+          "currentlyWorking": { "type": "boolean" }
+        }
+      },
+      "EducationRequest": {
+        "type": "object",
+        "properties": {
+          "school": { "type": "string" },
+          "degree": { "type": "string" },
+          "fieldOfStudy": { "type": "string" },
+          "startDate": { "type": "string", "description": "YYYY-MM-DD or DD/MM/YYYY" },
+          "endDate": { "type": "string", "description": "YYYY-MM-DD or DD/MM/YYYY" },
+          "description": { "type": "string" }
+        }
+      },
+      "CertificationRequest": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "issuer": { "type": "string" },
+          "issueDate": { "type": "string", "description": "YYYY-MM-DD or DD/MM/YYYY" },
+          "expirationDate": { "type": "string", "description": "YYYY-MM-DD or DD/MM/YYYY" },
+          "credentialUrl": { "type": "string" }
+        }
+      },
+      "SocialLinksRequest": {
+        "type": "object",
+        "properties": {
+          "linkedin": { "type": "string" },
+          "twitter": { "type": "string" },
+          "github": { "type": "string" },
+          "portfolio": { "type": "string" }
+        }
+      }
+    }
+  }
+}
