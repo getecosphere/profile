@@ -3,6 +3,8 @@
 ## 2.0.1 (2026-08-22)
 - Corrected ownership documentation: Profile + Storage own avatar and cover
   uploads; Auth remains pure credentials and identity.
+- Declare `STORAGE_PUBLIC_URL` so Eco injects browser-reachable content URLs
+  through the gateway instead of persisting an internal Storage address.
 - Added the canonical `/api/profile/*` gateway composition guidance in
   `AGENTS.md` so profile-ui and core estates use one browser prefix.
 

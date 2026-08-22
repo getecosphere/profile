@@ -1,6 +1,6 @@
 name: profile
 domain: profile
-version: 1.0.3
+version: 2.0.1
 publisher: stuff8
 status: unverified
 license: mit
@@ -8,6 +8,7 @@ summary: "User profiles: bio, experience, education, skills, certifications, lin
 
 targets:
   - linux/amd64
+  - darwin/arm64
 
 artifacts: {}
 
@@ -24,6 +25,7 @@ contract:
       - CORS_ALLOWED_ORIGINS
       - AUTH_BASE_URL
       - STORAGE_BASE_URL
+      - STORAGE_PUBLIC_URL
       - RATE_LIMIT_GENERAL_BURST
       - RATE_LIMIT_GENERAL_REPLENISH_SECS
   db: mongodb@7

@@ -22,6 +22,10 @@ are gated on a Bearer HS512 JWT and profile-editing roles.
   (`username`/`email`/`name`/`role`) — those belong to `auth`. Avatar and cover
   uploads are proxied to `storage`, then their URLs are stored here.
 
+`STORAGE_BASE_URL` is private peer traffic; `STORAGE_PUBLIC_URL` is the
+gateway URL persisted for avatar and cover images. Eco resolves both when
+Profile and Storage are composed, so a browser never receives a private port.
+
 ## Compose it
 
 ```yaml
