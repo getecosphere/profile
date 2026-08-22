@@ -22,14 +22,15 @@ comments across `backend/src/**` and the domain README.md.
   can add/update/delete entries on **another** user's profile. Preserved
   from the Java original; don't assume it's safe to expose.
 - **Identity fields are read-only here.** Never write
-  `username`/`email`/`name`/`role`/`avatarUrl`/`coverPhotoUrl` to a local
+  `username`/`email`/`name`/`role` to a local
   row — they only come from auth. `PUT /users/{id}` with a `name` forwards
   the caller's bearer token to auth (`PUT /auth/me`) and returns 400
   `"Auth could not update this identity"` if auth rejects it.
-- **No upload endpoints — avatar/cover upload is on `auth`.**
-  `POST /users/{id}/avatar` and `POST /users/{id}/upload-cover-photo` live
-  in the auth domain. This service has no file storage and `avatarUrl` /
-  `coverPhotoUrl` are composed from auth on every read.
+- **Avatar/cover require Storage.** `POST /users/{id}/avatar` and
+  `POST /users/{id}/upload-cover-photo` proxy bytes to the `storage` LXS.
+  Set `STORAGE_BASE_URL` (and its public content URL contract) or uploads fail
+  with 503. Profile is the writer of `avatarUrl`/`coverPhotoUrl`; Auth never
+  receives those fields.
 - **Lenient, lossy date parsing.** `startDate`/`endDate`/`issueDate`/
   `expirationDate` accept `YYYY-MM-DD` or `DD/MM/YYYY` only
   (`src/date_parse.rs`, mirrors Java `parseDate`). An unparseable date is

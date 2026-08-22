@@ -1,5 +1,11 @@
 # profile changelog
 
+## 2.0.1 (2026-08-22)
+- Corrected ownership documentation: Profile + Storage own avatar and cover
+  uploads; Auth remains pure credentials and identity.
+- Added the canonical `/api/profile/*` gateway composition guidance in
+  `AGENTS.md` so profile-ui and core estates use one browser prefix.
+
 ## 2.0.0 (2026-08-19)
 - Logging contract: service logs now emitted as newline-delimited JSON (NDJSON) to stdout per the platform LXS logging contract (`ts`/`level`/`msg` + optional `service`,`request_id`,`status`,`latency_ms`,`user_id`,`error`). Breaking change — log output format changed.
 

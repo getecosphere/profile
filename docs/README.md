@@ -7,22 +7,20 @@ province, COD meeting location (`codLocation`), interests, skills,
 experience, education, certifications, social links, and platformId — plus
 the school / interest / skill reference-data taxonomies. Read endpoints
 lazily hydrate a user row from the `auth` domain and keep auth-owned identity
-fields (name/username/email/role/avatar/cover) fresh on every read. Writes
+fields (name/username/email/role) fresh on every read. Writes
 are gated on a Bearer HS512 JWT and profile-editing roles.
 
 ## What it owns / never owns
 
-- **Owns:** everything about a person except credentials: bio, headline,
+- **Owns:** everything about a person except credentials: bio, avatar and
+  cover URLs, headline,
   location, website, `whatsappNumber`, `province`, `codLocation`, `school`,
   `platformId`, `interests`, `experiences`, `education`, `skills`,
   `certifications`, `socialLinks`; and the `schools` / `interests` / `skills`
   taxonomy collections.
 - **Never owns:** credentials, JWT issuance, and identity fields
-  (`username`/`email`/`name`/`role`/`avatarUrl`/`coverPhotoUrl`) — those
-  belong to `auth` and are only cached locally, refreshed from auth on reads.
-  Avatar/cover **upload** is exclusively `auth` (`POST /users/{id}/avatar`,
-  `POST /users/{id}/upload-cover-photo`) — this service has no upload endpoint
-  and no file storage.
+  (`username`/`email`/`name`/`role`) — those belong to `auth`. Avatar and cover
+  uploads are proxied to `storage`, then their URLs are stored here.
 
 ## Compose it
 
