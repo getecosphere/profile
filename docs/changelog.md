@@ -1,5 +1,9 @@
 # profile changelog
 
+## 2.0.2 (2026-08-22)
+- Inject the browser-reachable Storage gateway prefix for persisted avatar and
+  cover URLs.
+
 ## 2.0.1 (2026-08-22)
 - Corrected ownership documentation: Profile + Storage own avatar and cover
   uploads; Auth remains pure credentials and identity.
